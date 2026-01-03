@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>DuitDuck 365 存钱挑战</title>
+    <!-- 引入核心库 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Firebase SDK (兼容版) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        @keyframes wobble { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+        .duck-wobble { animation: wobble 1s ease-in-out infinite; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        body { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="bg-[#FDFCF9]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ==========================================
+        // 1. 请在此处替换为您自己的 Firebase 配置
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // 初始化 Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const APP_ID = 'duit-duck-365';
+
+        const { useState, useEffect } = React;
+
+        // --- 核心组件 ---
+        const DuckIcon = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 100 100" className="duck-wobble">
+                <circle cx="50" cy="50" r="48" fill="#FFD93D" stroke="#CC9900" strokeWidth="2" />
+                <circle cx="38" cy="42" r="4" fill="#1E293B" />
+                <circle cx="62" cy="42" r="4" fill="#1E293B" />
+                <path d="M35 55C35 50 65 50 65 55C65 65 35 65 35 55Z" fill="#FF8C00" />
+                <path d="M42 58C45 60 55 60 58 58" stroke="#CC6600" strokeWidth="1" strokeLinecap="round" />
+            </svg>
+        );
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [activeCells, setActiveCells] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [gender, setGender] = useState('female');
+            const [nickname, setNickname] = useState('');
+
+            useEffect(() => {
+                auth.signInAnonymously().catch(console.error);
+                auth.onAuthStateChanged(u => {
+                    if(u) {
+                        setUser(u);
+                        // 监听云端数据 (使用固定路径规则)
+                        const docRef = db.collection('artifacts').doc(APP_ID).collection('users').doc(u.uid).collection('settings').doc('progress');
+                        const unsubscribe = docRef.onSnapshot(doc => {
+                            if(doc.exists()) {
+                                const data = doc.data();
+                                setActiveCells(data.cells || []);
+                                setGender(data.gender || 'female');
+                                setNickname(data.nickname || '');
+                            }
+                            setLoading(false);
+                        }, (error) => {
+                            console.error("Firestore Listen Error:", error);
+                            setLoading(false);
+                        });
+                        return () => unsubscribe();
+                    }
+                });
+            }, []);
+
+            const toggleCell = async (num) => {
+                if (!user) return;
+                const newCells = activeCells.includes(num) 
+                    ? activeCells.filter(n => n !== num) 
+                    : [...activeCells, num];
+                
+                // 本地快速反馈
+                setActiveCells(newCells);
+
+                // 同步至云端
+                try {
+                    await db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('settings').doc('progress').set({
+                        cells: newCells,
+                        gender,
+                        nickname,
+                        totalSaved: newCells.length * 10, // 假设每天存10元作为示例
+                        updatedAt: Date.now()
+                    }, { merge: true });
+                } catch (e) {
+                    console.error("Save error:", e);
+                }
+            };
+
+            if (loading) return (
+                <div className="h-screen flex flex-col items-center justify-center bg-white">
+                    <DuckIcon size={80} />
+                    <p className="mt-4 font-black text-amber-500 tracking-widest animate-pulse">进入鸭子领地...</p>
+                </div>
+            );
+
+            const accentColor = gender === 'female' ? 'rose' : 'amber';
+            const totalAmount = activeCells.length * 10;
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen bg-[#FDFCF9] pb-20 shadow-2xl border-x border-gray-100 font-sans">
+                    {/* 头部 */}
+                    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md p-5 border-b flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <DuckIcon size={32} />
+                            <h1 className="font-black text-amber-600 text-xl tracking-tighter italic">DUITDUCK</h1>
+                        </div>
+                        <div className="flex gap-2">
+                             <button onClick={() => setGender('female')} className={w-8 h-8 rounded-full flex items-center justify-center text-xs ${gender === 'female' ? 'bg-rose-400 text-white shadow-lg' : 'bg-gray-100 text-gray-400'}}>👧</button>
+                             <button onClick={() => setGender('male')} className={w-8 h-8 rounded-full flex items-center justify-center text-xs ${gender === 'male' ? 'bg-amber-500 text-white shadow-lg' : 'bg-gray-100 text-gray-400'}}>👦</button>
+                        </div>
+                    </header>
+
+                    <main className="p-4 space-y-6">
+                        {/* 进度概览卡片 */}
+                        <div className={bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 relative overflow-hidden}>
+                            <div className={absolute top-0 right-0 w-32 h-32 bg-${accentColor}-50 rounded-full -mr-16 -mt-16 opacity-50}></div>
+                            <div className="relative z-10">
+                                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">365天挑战进度</h2>
+                                <div className="flex items-baseline gap-2">
+                                    <span className={text-5xl font-black text-${accentColor}-500 tracking-tighter}>
+                                        {((activeCells.length / 365) * 100).toFixed(1)}
+                                    </span>
+                                    <span className={text-xl font-bold text-${accentColor}-300 uppercase}>%</span>
+                                </div>
+                                
+                                <div className="mt-8 grid grid-cols-2 gap-4">
+                                    <div className="bg-gray-50 p-4 rounded-3xl">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">已点亮</p>
+                                        <p className="text-xl font-black text-gray-700">{activeCells.length} <span className="text-xs">天</span></p>
+                                    </div>
+                                    <div className="bg-gray-50 p-4 rounded-3xl">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">估算金额</p>
+                                        <p className={text-xl font-black text-${accentColor}-600}>RM {totalAmount}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 365天打卡网格 */}
+                        <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100">
+                            <div className="flex justify-between items-center mb-6 px-2">
+                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">点击数字打卡</h3>
+                                <div className="h-1 w-12 bg-gray-100 rounded-full"></div>
+                            </div>
+                            
+                            <div className="grid grid-cols-7 gap-2">
+                                {Array.from({length: 365}, (_, i) => i + 1).map(num => (
+                                    <button 
+                                        key={num}
+                                        onClick={() => toggleCell(num)}
+                                        className={`aspect-square rounded-xl text-[11px] font-bold transition-all duration-200 active:scale-75 shadow-sm flex items-center justify-center ${
+                                            activeCells.includes(num) 
+                                            ? bg-${accentColor}-400 text-white shadow-${accentColor}-200/50 scale-105 
+                                            : 'bg-[#F9FAFB] text-gray-400 border border-gray-100 hover:bg-gray-100'
+                                        }`}
+                                    >
+                                        {num}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+
+                    {/* 底部装饰 */}
+                    <footer className="p-8 text-center">
+                        <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Stay Humble • Keep Saving</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
