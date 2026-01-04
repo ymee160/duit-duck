@@ -2,32 +2,34 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DuitDuck 365 存钱挑战</title>
-    <!-- 引入核心库 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DuitDuck 365 Challenge</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Firebase SDK (兼容版) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <style>
-        @keyframes wobble { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
-        .duck-wobble { animation: wobble 1s ease-in-out infinite; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        body { -webkit-tap-highlight-color: transparent; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        @keyframes duckShake { 
+          0%, 100% { transform: rotate(-8deg); } 
+          50% { transform: rotate(8deg); } 
+        }
+        .duck-animate { animation: duckShake 2s ease-in-out infinite; }
     </style>
 </head>
-<body class="bg-[#FDFCF9]">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
-        // ==========================================
-        // 1. 请在此处替换为您自己的 Firebase 配置
-        // ==========================================
-        const firebaseConfig = {
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Firebase Placeholder (GitHub 环境需配置) ---
+        // 注意：在实际 GitHub Pages 部署时，请替换这些占位符为你的实际配置
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyC_8LfzUwDqR_2bInFAtJ8vHZQ2ym12TeY",
             authDomain: "duit-duck.firebaseapp.com",
             projectId: "duit-duck",
@@ -36,163 +38,201 @@
             appId: "1:994466838734:web:cd5625e55f0608fd7a389f",
             measurementId: "G-XGW6D4CXSW"
         };
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'duit-duck-365';
 
-        // 初始化 Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const APP_ID = 'duit-duck-365';
-
-        const { useState, useEffect } = React;
-
-        // --- 核心组件 ---
-        const DuckIcon = ({ size = 24 }) => (
-            <svg width={size} height={size} viewBox="0 0 100 100" className="duck-wobble">
-                <circle cx="50" cy="50" r="48" fill="#FFD93D" stroke="#CC9900" strokeWidth="2" />
-                <circle cx="38" cy="42" r="4" fill="#1E293B" />
-                <circle cx="62" cy="42" r="4" fill="#1E293B" />
-                <path d="M35 55C35 50 65 50 65 55C65 65 35 65 35 55Z" fill="#FF8C00" />
-                <path d="M42 58C45 60 55 60 58 58" stroke="#CC6600" strokeWidth="1" strokeLinecap="round" />
-            </svg>
+        // --- 灵魂组件：憨憨鸭 ---
+        const DuckIcon = ({ size = 24, gender = 'female', isAnimated = false, className = "" }) => (
+          <svg 
+            width={size} 
+            height={size} 
+            viewBox="0 0 100 100" 
+            className={`inline-block origin-bottom ${isAnimated ? 'duck-animate' : ''} ${className}`}
+          >
+            <circle cx="50" cy="55" r="42" fill="#FFD600" />
+            <circle cx="50" cy="55" r="42" fill="url(#grad)" />
+            <defs>
+              <radialGradient id="grad" cx="40%" cy="40%" r="60%">
+                <stop offset="0%" stopColor="#FFF176" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#FFD600" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            <ellipse cx="50" cy="64" rx="16" ry="9" fill="#FF9100" stroke="#E65100" strokeWidth="1" />
+            <path d="M38 64 Q50 66 62 64" stroke="#BF360C" strokeWidth="0.5" fill="none" opacity="0.4" />
+            <circle cx="34" cy="46" r="4.5" fill="#212121" />
+            <circle cx="66" cy="46" r="4.5" fill="#212121" />
+            <circle cx="35.5" cy="44.5" r="1.5" fill="white" />
+            <circle cx="67.5" cy="44.5" r="1.5" fill="white" />
+            <circle cx="22" cy="58" r="6" fill="#FF80AB" opacity="0.4" />
+            <circle cx="78" cy="58" r="6" fill="#FF80AB" opacity="0.4" />
+            {gender === 'female' ? (
+              <g transform="translate(14, 10) rotate(-10)">
+                <path d="M10 18 L8.8 17.1 C3.5 12.3 0 9.1 0 5.2 C0 2.3 2.3 0 5.2 0 C6.8 0 8.4 0.7 9.5 2 C10.6 0.7 12.2 0 13.8 0 C16.7 0 19 2.3 19 5.2 C19 9.1 15.5 12.3 10.2 17.1 L10 18 Z" fill="#FF4081" />
+              </g>
+            ) : (
+              <g transform="translate(32, 80)">
+                <path d="M0 10 L14 2 L14 18 Z" fill="#5D4037" />
+                <path d="M36 10 L22 2 L22 18 Z" fill="#5D4037" />
+                <rect x="14" y="6" width="8" height="8" rx="1" fill="#3E2723" />
+              </g>
+            )}
+          </svg>
         );
 
+        const HeartIcon = ({ className = "" }) => (
+          <svg viewBox="0 0 100 100" className={className} fill="none">
+            <path d="M50 82 L44 76.5 C24 58.5 10 46 10 31 C10 18.5 19.5 9 32 9 C39 9 46 12.5 50 17.5 C54 12.5 61 9 68 9 C80.5 9 90 18.5 90 31 C90 46 76 58.5 56 76.5 L50 82 Z" fill="#FF4081" />
+          </svg>
+        );
+
+        const SAVING_LEVELS = [
+          { id: 1, target: 3340, icon: "🌱" },
+          { id: 2, target: 6680, icon: "🚀" }, 
+          { id: 3, target: 20039, icon: "🏆" },
+          { id: 4, target: 40077, icon: "💎" },
+          { id: 5, target: 66795, icon: "👑" }
+        ];
+
         function App() {
-            const [user, setUser] = useState(null);
-            const [activeCells, setActiveCells] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [gender, setGender] = useState('female');
-            const [nickname, setNickname] = useState('');
+          const [activeTab, setActiveTab] = useState('home'); 
+          const [activeCells, setActiveCells] = useState([]);
+          const [gender, setGender] = useState('female');
+          const [nickname, setNickname] = useState('憨憨鸭001');
+          const [targetLevel, setTargetLevel] = useState(SAVING_LEVELS[0]);
+          const [showShareToast, setShowShareToast] = useState(false);
 
-            useEffect(() => {
-                auth.signInAnonymously().catch(console.error);
-                auth.onAuthStateChanged(u => {
-                    if(u) {
-                        setUser(u);
-                        // 监听云端数据 (使用固定路径规则)
-                        const docRef = db.collection('artifacts').doc(APP_ID).collection('users').doc(u.uid).collection('settings').doc('progress');
-                        const unsubscribe = docRef.onSnapshot(doc => {
-                            if(doc.exists()) {
-                                const data = doc.data();
-                                setActiveCells(data.cells || []);
-                                setGender(data.gender || 'female');
-                                setNickname(data.nickname || '');
-                            }
-                            setLoading(false);
-                        }, (error) => {
-                            console.error("Firestore Listen Error:", error);
-                            setLoading(false);
-                        });
-                        return () => unsubscribe();
-                    }
-                });
-            }, []);
+          // 此处省略 Firebase 真实逻辑以保证 HTML 可以在无配置下预览
+          // 实际使用时需按 Canvas 文档导入 Firebase 模块
 
-            const toggleCell = async (num) => {
-                if (!user) return;
-                const newCells = activeCells.includes(num) 
-                    ? activeCells.filter(n => n !== num) 
-                    : [...activeCells, num];
-                
-                // 本地快速反馈
-                setActiveCells(newCells);
-
-                // 同步至云端
-                try {
-                    await db.collection('artifacts').doc(APP_ID).collection('users').doc(user.uid).collection('settings').doc('progress').set({
-                        cells: newCells,
-                        gender,
-                        nickname,
-                        totalSaved: newCells.length * 10, // 假设每天存10元作为示例
-                        updatedAt: Date.now()
-                    }, { merge: true });
-                } catch (e) {
-                    console.error("Save error:", e);
+          const theme = useMemo(() => {
+            return gender === 'female' 
+              ? { 
+                  bg: 'bg-[#FFF5F7]', card: 'bg-white', accent: 'text-[#9D174D]', 
+                  bar: 'bg-[#BE123C]', lightAccent: 'bg-[#FFE4E6]', border: 'border-[#FECDD3]', 
+                  btnText: 'text-white', gridInactive: 'bg-white text-[#FDA4AF] border-[#FECDD3]',
+                  headerText: 'text-[#881337]', subText: 'text-[#9F1239]',
+                  tabActive: 'bg-[#9D174D] text-white shadow-lg', tabInactive: 'text-[#9D174D]'
                 }
-            };
+              : { 
+                  bg: 'bg-[#FFFBF5]', card: 'bg-white', accent: 'text-[#A0522D]', 
+                  bar: 'bg-[#C68642]', lightAccent: 'bg-[#F5E6D3]', border: 'border-[#E6CCB2]', 
+                  btnText: 'text-white', gridInactive: 'bg-[#FDF8F3] text-[#DDB892] border-[#EDE0D4]', 
+                  headerText: 'text-[#582F0E]', subText: 'text-[#9C6644]',
+                  tabActive: 'bg-[#C68642] text-white shadow-lg', tabInactive: 'text-[#9C6644]'
+                };
+          }, [gender]);
 
-            if (loading) return (
-                <div className="h-screen flex flex-col items-center justify-center bg-white">
-                    <DuckIcon size={80} />
-                    <p className="mt-4 font-black text-amber-500 tracking-widest animate-pulse">进入鸭子领地...</p>
+          const currentTotal = useMemo(() => {
+            const sum = activeCells.reduce((acc, day) => acc + (day * (targetLevel.target / 66795)), 0);
+            return sum.toFixed(2);
+          }, [activeCells, targetLevel]);
+
+          const progressPercent = useMemo(() => ((activeCells.length / 365) * 100).toFixed(1), [activeCells]);
+
+          const toggleCell = (num) => {
+            setActiveCells(prev => prev.includes(num) ? prev.filter(n => n !== num) : [...prev, num]);
+          };
+
+          const handleShare = () => {
+            const shareText = `🐥【DuitDuck 365】\n${nickname} 正在挑战 RM ${targetLevel.target.toLocaleString()}！\n✨ 目前进度：RM ${currentTotal}\n📅 已坚持：${activeCells.length} 天！💰`;
+            const textArea = document.createElement("textarea");
+            textArea.value = shareText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            setShowShareToast(true);
+            setTimeout(() => setShowShareToast(false), 2000);
+          };
+
+          return (
+            <div className={`max-w-md mx-auto min-h-screen ${theme.bg} pb-28 shadow-2xl border-x ${theme.border} transition-colors duration-500 overflow-x-hidden relative`}>
+              {showShareToast && (
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[110] bg-black text-white px-6 py-3 rounded-full text-[10px] font-black tracking-widest shadow-2xl">
+                  复制成功！🐥
                 </div>
-            );
+              )}
 
-            const accentColor = gender === 'female' ? 'rose' : 'amber';
-            const totalAmount = activeCells.length * 10;
-
-            return (
-                <div className="max-w-md mx-auto min-h-screen bg-[#FDFCF9] pb-20 shadow-2xl border-x border-gray-100 font-sans">
-                    {/* 头部 */}
-                    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md p-5 border-b flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                            <DuckIcon size={32} />
-                            <h1 className="font-black text-amber-600 text-xl tracking-tighter italic">DUITDUCK</h1>
-                        </div>
-                        <div className="flex gap-2">
-                             <button onClick={() => setGender('female')} className={w-8 h-8 rounded-full flex items-center justify-center text-xs ${gender === 'female' ? 'bg-rose-400 text-white shadow-lg' : 'bg-gray-100 text-gray-400'}}>👧</button>
-                             <button onClick={() => setGender('male')} className={w-8 h-8 rounded-full flex items-center justify-center text-xs ${gender === 'male' ? 'bg-amber-500 text-white shadow-lg' : 'bg-gray-100 text-gray-400'}}>👦</button>
-                        </div>
-                    </header>
-
-                    <main className="p-4 space-y-6">
-                        {/* 进度概览卡片 */}
-                        <div className={bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 relative overflow-hidden}>
-                            <div className={absolute top-0 right-0 w-32 h-32 bg-${accentColor}-50 rounded-full -mr-16 -mt-16 opacity-50}></div>
-                            <div className="relative z-10">
-                                <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">365天挑战进度</h2>
-                                <div className="flex items-baseline gap-2">
-                                    <span className={text-5xl font-black text-${accentColor}-500 tracking-tighter}>
-                                        {((activeCells.length / 365) * 100).toFixed(1)}
-                                    </span>
-                                    <span className={text-xl font-bold text-${accentColor}-300 uppercase}>%</span>
-                                </div>
-                                
-                                <div className="mt-8 grid grid-cols-2 gap-4">
-                                    <div className="bg-gray-50 p-4 rounded-3xl">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">已点亮</p>
-                                        <p className="text-xl font-black text-gray-700">{activeCells.length} <span className="text-xs">天</span></p>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-3xl">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-1">估算金额</p>
-                                        <p className={text-xl font-black text-${accentColor}-600}>RM {totalAmount}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 365天打卡网格 */}
-                        <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-center mb-6 px-2">
-                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">点击数字打卡</h3>
-                                <div className="h-1 w-12 bg-gray-100 rounded-full"></div>
-                            </div>
-                            
-                            <div className="grid grid-cols-7 gap-2">
-                                {Array.from({length: 365}, (_, i) => i + 1).map(num => (
-                                    <button 
-                                        key={num}
-                                        onClick={() => toggleCell(num)}
-                                        className={`aspect-square rounded-xl text-[11px] font-bold transition-all duration-200 active:scale-75 shadow-sm flex items-center justify-center ${
-                                            activeCells.includes(num) 
-                                            ? bg-${accentColor}-400 text-white shadow-${accentColor}-200/50 scale-105 
-                                            : 'bg-[#F9FAFB] text-gray-400 border border-gray-100 hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        {num}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </main>
-
-                    {/* 底部装饰 */}
-                    <footer className="p-8 text-center">
-                        <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Stay Humble • Keep Saving</p>
-                    </footer>
+              <header className={`sticky top-0 z-40 ${theme.card} bg-opacity-95 backdrop-blur-md p-5 border-b ${theme.border} flex justify-between items-center shadow-sm`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-1 rounded-full ${theme.lightAccent} ring-2 ring-white shadow-sm`}>
+                    <DuckIcon size={58} gender={gender} isAnimated={false} />
+                  </div>
+                  <div>
+                    <input 
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      className={`font-black bg-transparent border-none p-0 focus:ring-0 text-xl w-32 uppercase tracking-tighter ${theme.headerText}`}
+                    />
+                    <div className={`text-[9px] font-black uppercase tracking-[0.2em] ${theme.subText}`}>DuitDuck Club</div>
+                  </div>
                 </div>
-            );
+                <div className="flex gap-1.5">
+                  <button onClick={handleShare} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${theme.lightAccent} shadow-sm border ${theme.border}`}>📤</button>
+                  <button onClick={() => setGender('female')} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${gender === 'female' ? `${theme.bar} shadow-md scale-110` : `${theme.lightAccent} opacity-60`}`}>
+                    <HeartIcon className="w-8 h-8" />
+                  </button>
+                  <button onClick={() => setGender('male')} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${gender === 'male' ? `${theme.bar} text-white shadow-md scale-110` : `${theme.lightAccent} opacity-60`}`}>🍫</button>
+                </div>
+              </header>
+
+              <main className="p-4">
+                <div className="space-y-6">
+                    <div className={`${theme.card} rounded-[2.5rem] p-8 shadow-md border ${theme.border} relative overflow-hidden`}>
+                      <div className={`absolute top-0 right-0 w-32 h-32 ${theme.lightAccent} rounded-full -mr-16 -mt-16 opacity-40 animate-pulse`}></div>
+                      <div className="relative z-10 text-center space-y-6">
+                        <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full ${theme.lightAccent} border ${theme.border} shadow-sm`}>
+                          <span className="text-sm">{targetLevel.icon}</span>
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${theme.accent}`}>Target: RM {targetLevel.target.toLocaleString()}</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <p className={`text-[10px] font-black uppercase tracking-[0.3em] mb-1 ${theme.subText}`}>Total Saved</p>
+                          <span className={`text-6xl font-black ${theme.accent} tracking-tighter`}>RM {currentTotal}</span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-end px-2">
+                            <span className={`text-[10px] font-black uppercase ${theme.subText}`}>Progress</span>
+                            <span className={`text-[10px] font-black ${theme.accent}`}>{progressPercent}%</span>
+                          </div>
+                          <div className={`${theme.lightAccent} h-3.5 rounded-full p-0.5 overflow-hidden shadow-inner`}>
+                            <div className={`h-full ${theme.bar} rounded-full transition-all duration-1000 ease-out`} style={{ width: `${progressPercent}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={`${theme.card} rounded-[2.5rem] p-6 shadow-sm border ${theme.border}`}>
+                      <div className="flex justify-between items-center mb-6 px-2">
+                        <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme.subText}`}>365 Days Grid</h3>
+                        <div className="text-[8px] font-black opacity-30 uppercase tracking-widest">Tap to Save</div>
+                      </div>
+                      <div className="grid grid-cols-7 gap-2">
+                        {Array.from({length: 365}, (_, i) => i + 1).map(num => {
+                          const isChecked = activeCells.includes(num);
+                          return (
+                            <button 
+                              key={num}
+                              onClick={() => toggleCell(num)}
+                              className={`aspect-square rounded-xl text-[11px] font-bold transition-all active:scale-75 shadow-sm flex items-center justify-center border ${
+                                isChecked ? `${theme.bar} ${theme.btnText} border-transparent shadow-md scale-110 ring-2 ring-white` : `${theme.gridInactive} border shadow-none`
+                              }`}
+                            >
+                              {num}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                </div>
+              </main>
+
+              <nav className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto z-50 p-4`}>
+                <div className={`${theme.card} border ${theme.border} rounded-3xl shadow-2xl flex p-1.5 gap-2 backdrop-blur-xl bg-white/70`}>
+                  <button onClick={() => setActiveTab('home')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${activeTab === 'home' ? theme.tabActive : theme.tabInactive}`}>🗓️ 挑战</button>
+                  <button onClick={() => setActiveTab('rank')} className={`flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-widest ${activeTab === 'rank' ? theme.tabActive : theme.tabInactive}`}>🏆 排行</button>
+                </div>
+              </nav>
+            </div>
+          );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
